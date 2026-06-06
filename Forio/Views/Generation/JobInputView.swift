@@ -24,6 +24,13 @@ struct JobInputView: View {
     var onBack: () -> Void
     var profile: UserProfile? { profiles.first }
 
+    private var topSafeArea: CGFloat {
+        (UIApplication.shared.connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+            .first?.windows
+            .first?.safeAreaInsets.top) ?? 44
+    }
+
     var body: some View {
         ZStack {
             Color(hex: "0A0A0F").ignoresSafeArea(.all)
@@ -38,18 +45,20 @@ struct JobInputView: View {
             DocumentScannerView { result in
                 showScanner = false
                 guard case .success(let scan) = result else { return }
+                let images = (0..<min(scan.pageCount, 5)).map { scan.imageOfPage(at: $0) }
                 isScanning = true
-                Task { @MainActor in
-                    do {
-                        let images = (0..<min(scan.pageCount, 5)).map { scan.imageOfPage(at: $0) }
-                        let extracted = try await AIService.shared.extractJobDescription(from: images)
-                        if !extracted.description.isEmpty { viewModel.jobDescription = extracted.description }
-                        if !extracted.title.isEmpty   { viewModel.jobTitle   = extracted.title }
-                        if !extracted.company.isEmpty { viewModel.company    = extracted.company }
-                    } catch {
-                        scanError = "Couldn't read the job ad — try paste instead.\n\(error.localizedDescription)"
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    Task { @MainActor in
+                        do {
+                            let extracted = try await AIService.shared.extractJobDescription(from: images)
+                            if !extracted.description.isEmpty { viewModel.jobDescription = extracted.description }
+                            if !extracted.title.isEmpty   { viewModel.jobTitle   = extracted.title }
+                            if !extracted.company.isEmpty { viewModel.company    = extracted.company }
+                        } catch {
+                            scanError = "Couldn't read the job ad — try paste instead."
+                        }
+                        isScanning = false
                     }
-                    isScanning = false
                 }
             }
         }
@@ -111,7 +120,7 @@ struct JobInputView: View {
                 }
             }
             .padding(.horizontal, 20)
-            .padding(.top, 16)
+            .padding(.top, topSafeArea + 16)
             .padding(.bottom, 16)
             .background(Color(hex: "0A0A0F"))
 

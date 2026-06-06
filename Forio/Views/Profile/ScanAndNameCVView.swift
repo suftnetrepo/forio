@@ -8,6 +8,13 @@ struct ScanAndNameCVView: View {
 
     var onSaved: (CVProfile) -> Void
 
+    private var topSafeArea: CGFloat {
+        (UIApplication.shared.connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+            .first?.windows
+            .first?.safeAreaInsets.top) ?? 44
+    }
+
     @State private var step: Step = .scan
     @State private var showScanner = false
     @State private var showDocPicker = false
@@ -34,7 +41,11 @@ struct ScanAndNameCVView: View {
             DocumentScannerView { result in
                 showScanner = false
                 guard case .success(let scan) = result else { return }
-                extractFromImages((0..<min(scan.pageCount, 10)).map { scan.imageOfPage(at: $0) })
+                let images = (0..<min(scan.pageCount, 10)).map { scan.imageOfPage(at: $0) }
+                // Wait for scanner cover to fully dismiss before extracting
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    extractFromImages(images)
+                }
             }
         }
         .sheet(isPresented: $showDocPicker) {
@@ -70,7 +81,7 @@ struct ScanAndNameCVView: View {
                 Color.clear.frame(width: 32)
             }
             .padding(.horizontal, 20)
-            .padding(.top, 20)
+            .padding(.top, topSafeArea + 16)
             .padding(.bottom, 24)
 
             if isExtracting {
@@ -138,7 +149,7 @@ struct ScanAndNameCVView: View {
                 Color.clear.frame(width: 32)
             }
             .padding(.horizontal, 20)
-            .padding(.top, 20)
+            .padding(.top, topSafeArea + 16)
             .padding(.bottom, 24)
 
             ScrollView {

@@ -12,6 +12,13 @@ struct PaywallView: View {
 
     let plans = ["Monthly", "Yearly", "Lifetime"]
 
+    private var topSafeArea: CGFloat {
+        (UIApplication.shared.connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+            .first?.windows
+            .first?.safeAreaInsets.top) ?? 44
+    }
+
     var selectedProduct: StoreProduct? {
         switch selectedPlan {
         case 0: return purchaseService.monthlyProduct
@@ -66,7 +73,9 @@ struct PaywallView: View {
             Spacer()
             Color.clear.frame(width: 32, height: 32)
         }
-        .padding(16)
+        .padding(.horizontal, 16)
+        .padding(.top, topSafeArea + 16)
+        .padding(.bottom, 16)
     }
 
     // MARK: Hero
