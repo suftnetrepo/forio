@@ -157,6 +157,7 @@ struct CVImportView: View {
                 .frame(minHeight: geo.size.height)
             }
         }
+        .safeAreaPadding(.top)
     }
 
     private func importCard(

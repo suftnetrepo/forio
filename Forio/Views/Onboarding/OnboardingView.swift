@@ -131,6 +131,7 @@ struct SplashScreen: View {
             .padding(.bottom, 52)
             .opacity(appear ? 1 : 0)
         }
+        .safeAreaPadding(.top)
         .onAppear {
             withAnimation(.spring(duration: 0.7, bounce: 0.3).delay(0.2)) {
                 appear = true
@@ -287,6 +288,7 @@ struct PersonaPickerScreen: View {
                 .padding(.horizontal, 24)
                 .padding(.bottom, 52)
         }
+        .safeAreaPadding(.top)
     }
 
     private func personaCard(_ persona: UserPersona) -> some View {
@@ -430,6 +432,7 @@ struct ImportChoiceScreen: View {
                 .frame(minHeight: geo.size.height)
             }
         }
+        .safeAreaPadding(.top)
     }
 
     private func importCard(

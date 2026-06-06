@@ -8,13 +8,6 @@ struct ScanAndNameCVView: View {
 
     var onSaved: (CVProfile) -> Void
 
-    private var topSafeArea: CGFloat {
-        (UIApplication.shared.connectedScenes
-            .compactMap { $0 as? UIWindowScene }
-            .first?.windows
-            .first?.safeAreaInsets.top) ?? 44
-    }
-
     @State private var step: Step = .scan
     @State private var showScanner = false
     @State private var showDocPicker = false
@@ -81,7 +74,7 @@ struct ScanAndNameCVView: View {
                 Color.clear.frame(width: 32)
             }
             .padding(.horizontal, 20)
-            .padding(.top, topSafeArea + 16)
+            .padding(.top, 16)
             .padding(.bottom, 24)
 
             if isExtracting {
@@ -110,6 +103,7 @@ struct ScanAndNameCVView: View {
                 Spacer()
             }
         }
+        .safeAreaPadding(.top)
     }
 
     private var extractingView: some View {
@@ -149,7 +143,7 @@ struct ScanAndNameCVView: View {
                 Color.clear.frame(width: 32)
             }
             .padding(.horizontal, 20)
-            .padding(.top, topSafeArea + 16)
+            .padding(.top, 16)
             .padding(.bottom, 24)
 
             ScrollView {
@@ -269,6 +263,7 @@ struct ScanAndNameCVView: View {
             .padding(.bottom, 48)
             .padding(.top, 12)
         }
+        .safeAreaPadding(.top)
     }
 
     // MARK: - Import card

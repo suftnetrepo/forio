@@ -25,13 +25,6 @@ struct ProfileEditView: View {
     @State private var newGradYear = ""
     @State private var newGrade = ""
 
-    private var topSafeArea: CGFloat {
-        (UIApplication.shared.connectedScenes
-            .compactMap { $0 as? UIWindowScene }
-            .first?.windows
-            .first?.safeAreaInsets.top) ?? 44
-    }
-
     var body: some View {
         ZStack {
             AppTheme.bgPrimary.ignoresSafeArea(.all)
@@ -53,6 +46,7 @@ struct ProfileEditView: View {
                     .padding(.bottom, 60)
                 }
             }
+            .safeAreaPadding(.top)
         }
         .navigationBarHidden(true)
     }
@@ -82,7 +76,7 @@ struct ProfileEditView: View {
             .foregroundStyle(AppTheme.gold)
         }
         .padding(.horizontal, 20)
-        .padding(.top, topSafeArea + 16)
+        .padding(.top, 16)
         .padding(.bottom, 16)
     }
 

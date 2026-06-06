@@ -114,6 +114,7 @@ struct CVReviewView: View {
             }
             .frame(height: 130)
         }
+        .safeAreaPadding(.top)
     }
 
     // MARK: - Contact section

@@ -16,13 +16,6 @@ struct ProfileBuilderView: View {
         _viewModel = State(initialValue: ProfileBuilderViewModel(persona: persona))
     }
 
-    private var topSafeArea: CGFloat {
-        (UIApplication.shared.connectedScenes
-            .compactMap { $0 as? UIWindowScene }
-            .first?.windows
-            .first?.safeAreaInsets.top) ?? 44
-    }
-
     var body: some View {
         ZStack {
             AppTheme.bgPrimary.ignoresSafeArea(.all)
@@ -65,6 +58,7 @@ struct ProfileBuilderView: View {
                 // Bottom nav
                 bottomNav
             }
+            .safeAreaPadding(.top)
         }
     }
 
@@ -106,7 +100,7 @@ struct ProfileBuilderView: View {
             .frame(height: 3)
             .padding(.horizontal, 24)
         }
-        .padding(.top, topSafeArea + 16)
+        .padding(.top, 16)
         .padding(.bottom, 8)
     }
 
