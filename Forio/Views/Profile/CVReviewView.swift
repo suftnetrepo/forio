@@ -56,7 +56,7 @@ struct CVReviewView: View {
                 )
             }
             .padding(.horizontal, 20)
-            .padding(.top, 20)
+            .padding(.top, 60)
             .padding(.bottom, 16)
 
             // AI summary banner

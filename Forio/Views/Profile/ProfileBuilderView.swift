@@ -111,7 +111,7 @@ struct ProfileBuilderView: View {
             Button(action: { viewModel.goNext() }) {
                 Text(nextButtonLabel)
                     .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(Color(hex: "0A0A0F"))
+                    .foregroundStyle(AppTheme.bgPrimary)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 15)
                     .background(viewModel.canGoNext ? AppTheme.gold : AppTheme.gold.opacity(0.35))

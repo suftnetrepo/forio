@@ -89,7 +89,6 @@ struct HomeView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .safeAreaPadding(.top)
     }
 
     // MARK: - Header
@@ -99,11 +98,11 @@ struct HomeView: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text("Forio")
                     .font(.system(size: 22, weight: .medium))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(AppTheme.textPrimary)
                 if let profile, !profile.fullName.isEmpty {
                     Text("Hi, \(profile.fullName.components(separatedBy: " ").first ?? "there") 👋")
                         .font(.system(size: 13))
-                        .foregroundStyle(Color(hex: "888888"))
+                        .foregroundStyle(AppTheme.textMuted)
                 }
             }
             Spacer()
@@ -128,17 +127,17 @@ struct HomeView: View {
                 }) {
                     Image(systemName: "gearshape")
                         .font(.system(size: 16))
-                        .foregroundStyle(Color(hex: "aaaaaa"))
+                        .foregroundStyle(AppTheme.textSecond)
                         .frame(width: 34, height: 34)
-                        .background(Color(hex: "13131a"))
+                        .background(AppTheme.bgCard)
                         .clipShape(RoundedRectangle(cornerRadius: 8))
                         .overlay(RoundedRectangle(cornerRadius: 8)
-                            .stroke(Color(hex: "2a2a3a"), lineWidth: 0.5))
+                            .stroke(AppTheme.bgBorder, lineWidth: 0.5))
                 }
             }
         }
         .padding(.horizontal, 20)
-        .padding(.top, 16)
+        .padding(.top, 60)
         .padding(.bottom, 12)
     }
 
@@ -149,23 +148,51 @@ struct HomeView: View {
             Spacer()
             VStack(spacing: 16) {
                 Text("✦").font(.system(size: 40)).foregroundStyle(AppTheme.gold)
-                Text("Your first CV\nis one tap away")
-                    .font(.system(size: 24, weight: .medium)).foregroundStyle(.white)
+                Text("Ready when you are")
+                    .font(.system(size: 24, weight: .medium)).foregroundStyle(AppTheme.textPrimary)
                     .multilineTextAlignment(.center)
-                Text("Scan or paste a job description\nand AI generates a tailored CV in seconds")
-                    .font(.system(size: 15)).foregroundStyle(Color(hex: "666666"))
+                Text("Tap New CV to start your first application.\nYou can import your CV on the next screen.")
+                    .font(.system(size: 15)).foregroundStyle(AppTheme.textMuted)
                     .multilineTextAlignment(.center).lineSpacing(3)
+
+                // Quick guide
+                VStack(spacing: 8) {
+                    guideRow(num: "1", text: "Tap New CV below")
+                    guideRow(num: "2", text: "Add your CV — scan, upload or paste")
+                    guideRow(num: "3", text: "Paste a job description")
+                    guideRow(num: "4", text: "AI generates your tailored CV")
+                }
+                .padding(14)
+                .background(AppTheme.bgCard)
+                .clipShape(RoundedRectangle(cornerRadius: AppTheme.radiusMd))
+                .overlay(RoundedRectangle(cornerRadius: AppTheme.radiusMd)
+                    .stroke(AppTheme.bgBorder, lineWidth: 0.5))
+                .padding(.horizontal, 8)
             }
             Spacer()
             Button(action: { tapNewCV() }) {
-                HStack(spacing: 6) { Text("✦"); Text("Make my first CV") }
+                HStack(spacing: 6) { Text("✦"); Text("New CV") }
                     .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(Color(hex: "0A0A0F"))
+                    .foregroundStyle(AppTheme.bgPrimary)
                     .frame(maxWidth: .infinity).padding(.vertical, 16)
                     .background(AppTheme.gold)
                     .clipShape(RoundedRectangle(cornerRadius: AppTheme.radiusMd))
             }
             .padding(.horizontal, 24).padding(.bottom, 52)
+        }
+    }
+
+    private func guideRow(num: String, text: String) -> some View {
+        HStack(spacing: 12) {
+            Text(num)
+                .font(.system(size: 11, weight: .bold))
+                .foregroundStyle(AppTheme.bgPrimary)
+                .frame(width: 20, height: 20)
+                .background(AppTheme.gold)
+                .clipShape(Circle())
+            Text(text)
+                .font(.system(size: 13)).foregroundStyle(AppTheme.textSecond)
+            Spacer()
         }
     }
 
@@ -191,7 +218,7 @@ struct HomeView: View {
                 Button(action: { tapNewCV() }) {
                     HStack(spacing: 6) { Text("✦"); Text("New CV") }
                         .font(.system(size: 15, weight: .semibold))
-                        .foregroundStyle(Color(hex: "0A0A0F"))
+                        .foregroundStyle(AppTheme.bgPrimary)
                         .frame(maxWidth: .infinity).padding(.vertical, 16)
                         .background(AppTheme.gold)
                         .clipShape(RoundedRectangle(cornerRadius: AppTheme.radiusMd))
@@ -199,7 +226,7 @@ struct HomeView: View {
                 .padding(.horizontal, 24).padding(.bottom, 48)
                 .background(
                     LinearGradient(
-                        colors: [Color(hex: "0A0A0F").opacity(0), Color(hex: "0A0A0F")],
+                        colors: [AppTheme.bgPrimary.opacity(0), AppTheme.bgPrimary],
                         startPoint: .top, endPoint: .bottom
                     ).ignoresSafeArea()
                 )
@@ -222,20 +249,20 @@ struct ApplicationRowView: View {
         HStack(spacing: 12) {
             VStack(alignment: .leading, spacing: 4) {
                 Text(application.company.isEmpty ? "Untitled" : application.company)
-                    .font(.system(size: 14, weight: .medium)).foregroundStyle(.white)
+                    .font(.system(size: 14, weight: .medium)).foregroundStyle(AppTheme.textPrimary)
                 Text(application.jobTitle.isEmpty ? "—" : application.jobTitle)
-                    .font(.system(size: 12)).foregroundStyle(Color(hex: "888888"))
+                    .font(.system(size: 12)).foregroundStyle(AppTheme.textMuted)
                 Text(application.createdAt.formatted(date: .abbreviated, time: .omitted))
-                    .font(.system(size: 11)).foregroundStyle(Color(hex: "555555"))
+                    .font(.system(size: 11)).foregroundStyle(AppTheme.textDisabled)
             }
             Spacer()
             StatusBadge(status: application.status)
         }
         .padding(14)
-        .background(Color(hex: "13131a"))
+        .background(AppTheme.bgCard)
         .clipShape(RoundedRectangle(cornerRadius: AppTheme.radiusMd))
         .overlay(RoundedRectangle(cornerRadius: AppTheme.radiusMd)
-            .stroke(Color(hex: "2a2a3a"), lineWidth: 0.5))
+            .stroke(AppTheme.bgBorder, lineWidth: 0.5))
     }
 }
 

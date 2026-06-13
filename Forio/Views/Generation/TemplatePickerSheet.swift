@@ -131,9 +131,9 @@ struct TemplatePickerSheet: View {
         switch template {
         case .classicNavy:
             ZStack(alignment: .topLeading) {
-                Color(hex: "1a1a2e")
+                AppTheme.bgCard
                 VStack(alignment: .leading, spacing: 2) {
-                    Color(hex: "C9A84C").frame(height: 10)
+                    AppTheme.gold.frame(height: 10)
                     ForEach(0..<4) { _ in
                         Color.white.opacity(0.2).frame(height: 3).padding(.horizontal, 4)
                     }
@@ -143,9 +143,9 @@ struct TemplatePickerSheet: View {
             ZStack(alignment: .topLeading) {
                 Color.white
                 VStack(alignment: .leading, spacing: 2) {
-                    Color(hex: "111111").frame(height: 8)
+                    AppTheme.bgPrimary.frame(height: 8)
                     ForEach(0..<4) { _ in
-                        Color(hex: "cccccc").frame(height: 3).padding(.horizontal, 4)
+                        AppTheme.textSecond.frame(height: 3).padding(.horizontal, 4)
                     }
                 }
             }
@@ -166,7 +166,7 @@ struct TemplatePickerSheet: View {
             ZStack(alignment: .leading) {
                 Color(hex: "fdfcf8")
                 HStack(spacing: 0) {
-                    Color(hex: "C9A84C").frame(width: 3)
+                    AppTheme.gold.frame(width: 3)
                     VStack(alignment: .leading, spacing: 2) {
                         ForEach(0..<5) { _ in
                             Color(hex: "ccbb88").frame(height: 3).padding(.horizontal, 4)

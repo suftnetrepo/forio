@@ -89,7 +89,7 @@ struct MinimalProfileStarterView: View {
                     Button(action: advance) {
                         Text(currentStep == 2 ? "Let's go →" : "Continue →")
                             .font(.system(size: 15, weight: .semibold))
-                            .foregroundStyle(Color(hex: "0A0A0F"))
+                            .foregroundStyle(AppTheme.bgPrimary)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 16)
                             .background(canContinue ? AppTheme.gold : AppTheme.gold.opacity(0.35))

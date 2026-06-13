@@ -216,11 +216,11 @@ struct PaywallView: View {
             Button(action: { Task { await purchase() } }) {
                 HStack(spacing: 8) {
                     if isPurchasing {
-                        ProgressView().tint(Color(hex: "0A0A0F")).scaleEffect(0.8)
+                        ProgressView().tint(AppTheme.bgPrimary).scaleEffect(0.8)
                     }
                     Text(isPurchasing ? "Processing..." : "Start Premium  ✦")
                         .font(.system(size: 16, weight: .semibold))
-                        .foregroundStyle(Color(hex: "0A0A0F"))
+                        .foregroundStyle(AppTheme.bgPrimary)
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 16)

@@ -44,8 +44,10 @@ struct OnboardingView: View {
             case .importChoice:
                 ImportChoiceScreen(
                     persona: selectedPersona,
-                    onImport: { createProfile(persona: selectedPersona, imported: true) },
-                    onManual: { createProfile(persona: selectedPersona, imported: false) }
+                    onScan:   { createProfile(persona: selectedPersona, trigger: .scan) },
+                    onUpload: { createProfile(persona: selectedPersona, trigger: .upload) },
+                    onPaste:  { createProfile(persona: selectedPersona, trigger: .paste) },
+                    onManual: { createProfile(persona: selectedPersona, trigger: .none) }
                 )
                 .transition(.asymmetric(
                     insertion: .move(edge: .trailing).combined(with: .opacity),
@@ -56,9 +58,11 @@ struct OnboardingView: View {
         .animation(.easeInOut(duration: 0.35), value: step)
     }
 
-    private func createProfile(persona: UserPersona, imported: Bool) {
+    private func createProfile(persona: UserPersona, trigger: CVImportView.AutoTrigger) {
+        // Store trigger BEFORE creating profile so ContentView reads it on re-render
+        AutoTriggerStore.shared.trigger = trigger
         let profile = UserProfile(persona: persona)
-        profile.importedFromCV = imported
+        profile.importedFromCV = trigger != .none
         modelContext.insert(profile)
         try? modelContext.save()
         onComplete()
@@ -85,7 +89,7 @@ struct SplashScreen: View {
                         .shadow(color: AppTheme.gold.opacity(0.4), radius: 20, y: 8)
                     Image(systemName: "doc.text.fill")
                         .font(.system(size: 34))
-                        .foregroundStyle(Color(hex: "0A0A0F"))
+                        .foregroundStyle(AppTheme.bgPrimary)
                 }
                 .scaleEffect(appear ? 1 : 0.7)
                 .opacity(appear ? 1 : 0)
@@ -117,7 +121,7 @@ struct SplashScreen: View {
                 Button(action: onContinue) {
                     Text("Get Started")
                         .font(.system(size: 16, weight: .semibold))
-                        .foregroundStyle(Color(hex: "0A0A0F"))
+                        .foregroundStyle(AppTheme.bgPrimary)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 16)
                         .background(AppTheme.gold)
@@ -131,7 +135,6 @@ struct SplashScreen: View {
             .padding(.bottom, 52)
             .opacity(appear ? 1 : 0)
         }
-        .safeAreaPadding(.top)
         .onAppear {
             withAnimation(.spring(duration: 0.7, bounce: 0.3).delay(0.2)) {
                 appear = true
@@ -211,7 +214,7 @@ struct OnboardingPagesView: View {
                 }) {
                     Text(page == pages.count - 1 ? "Let's go →" : "Next")
                         .font(.system(size: 16, weight: .semibold))
-                        .foregroundStyle(Color(hex: "0A0A0F"))
+                        .foregroundStyle(AppTheme.bgPrimary)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 16)
                         .background(AppTheme.gold)
@@ -288,7 +291,6 @@ struct PersonaPickerScreen: View {
                 .padding(.horizontal, 24)
                 .padding(.bottom, 52)
         }
-        .safeAreaPadding(.top)
     }
 
     private func personaCard(_ persona: UserPersona) -> some View {
@@ -343,96 +345,121 @@ struct PersonaPickerScreen: View {
 
 struct ImportChoiceScreen: View {
     let persona: UserPersona
-    var onImport: () -> Void
-    var onManual: () -> Void
+    var onScan: () -> Void
+    var onUpload: () -> Void
+    var onPaste: () -> Void
+    var onManual: () -> Void  // "start fresh" — goes to dashboard with empty profile
 
     var body: some View {
-        GeometryReader { geo in
-            ScrollView {
-                VStack(spacing: 24) {
+        ScrollView {
+            VStack(spacing: 24) {
 
-                    // Title block — safe area aware so it never clips
-                    VStack(spacing: 8) {
-                        Text("Import your CV")
-                            .font(.system(size: 28, weight: .medium))
-                            .foregroundStyle(AppTheme.textPrimary)
-                        Text("We'll read it and build\nyour profile automatically")
-                            .font(.system(size: 15))
-                            .foregroundStyle(AppTheme.textMuted)
-                            .multilineTextAlignment(.center)
-                            .lineSpacing(3)
-                    }
-                    .padding(.top, 16)
+                VStack(spacing: 12) {
+                                   ZStack {
+                                       Circle()
+                                           .fill(AppTheme.goldFaint)
+                                           .frame(width: 72, height: 72)
+                                           .overlay(Circle().stroke(AppTheme.goldBorder, lineWidth: 1))
+                                       Image(systemName: "person.text.rectangle.fill")
+                                           .font(.system(size: 30))
+                                           .foregroundStyle(AppTheme.gold)
+                                   }
+                                   Text("Set up your profile")
+                                       .font(.system(size: 28, weight: .bold))
+                                       .foregroundStyle(AppTheme.textPrimary)
+                                       .multilineTextAlignment(.center)
+                                   Text("Import your CV so AI can tailor\nevery application to you")
+                                       .font(.system(size: 15))
+                                       .foregroundStyle(AppTheme.textMuted)
+                                       .multilineTextAlignment(.center)
+                                       .lineSpacing(4)
+                               }
+                               .padding(.top, 70)
 
-                    // Three import cards
-                    VStack(spacing: 10) {
-                        importCard(
-                            icon: "camera.fill",
-                            title: "Scan your CV",
-                            subtitle: "Point your camera at any printed or on-screen CV",
-                            isFeatured: true,
-                            action: onImport
-                        )
-                        importCard(
-                            icon: "doc.fill",
-                            title: "Upload a PDF or Word doc",
-                            subtitle: "Pick a file from your iPhone or iCloud Drive",
-                            isFeatured: false,
-                            action: onImport
-                        )
-                        importCard(
-                            icon: "doc.on.clipboard.fill",
-                            title: "Paste your CV text",
-                            subtitle: "Copy text from any document and paste it here",
-                            isFeatured: false,
-                            action: onImport
-                        )
-                    }
+                // Import options
+                VStack(spacing: 10) {
+                    importCard(
+                        icon: "camera.fill",
+                        title: "Scan your CV",
+                        subtitle: "Point your camera at any CV",
+                        isFeatured: true, action: onScan
+                    )
+                    importCard(
+                        icon: "doc.fill",
+                        title: "Upload a PDF or Word doc",
+                        subtitle: "Pick from your iPhone or iCloud Drive",
+                        isFeatured: false, action: onUpload
+                    )
+                    importCard(
+                        icon: "doc.on.clipboard.fill",
+                        title: "Paste your CV text",
+                        subtitle: "Copy and paste from any document",
+                        isFeatured: false, action: onPaste
+                    )
+                }
 
-                    // Divider + fallback
-                    HStack {
-                        Rectangle().fill(AppTheme.bgBorder).frame(height: 0.5)
-                        Text("or")
-                            .font(.system(size: 12))
-                            .foregroundStyle(AppTheme.textDisabled)
-                            .padding(.horizontal, 12)
-                        Rectangle().fill(AppTheme.bgBorder).frame(height: 0.5)
-                    }
+                // Divider
+                HStack {
+                    Rectangle().fill(AppTheme.bgBorder).frame(height: 0.5)
+                    Text("or").font(.system(size: 12)).foregroundStyle(AppTheme.textDisabled)
+                        .padding(.horizontal, 12)
+                    Rectangle().fill(AppTheme.bgBorder).frame(height: 0.5)
+                }
 
+                // Skip option — friendly, not buried
+                VStack(spacing: 12) {
                     Button(action: onManual) {
-                        Text("I don't have a CV yet — start fresh")
-                            .font(.system(size: 13))
-                            .foregroundStyle(AppTheme.textMuted)
-                            .underline()
+                        VStack(spacing: 6) {
+                            Text("Skip for now")
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundStyle(AppTheme.textPrimary)
+                            Text("You can import your CV anytime from the dashboard")
+                                .font(.system(size: 12))
+                                .foregroundStyle(AppTheme.textMuted)
+                                .multilineTextAlignment(.center)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                        .background(AppTheme.bgCard)
+                        .clipShape(RoundedRectangle(cornerRadius: AppTheme.radiusMd))
+                        .overlay(RoundedRectangle(cornerRadius: AppTheme.radiusMd)
+                            .stroke(AppTheme.bgBorder, lineWidth: 0.5))
                     }
+                    .buttonStyle(.plain)
 
-                    // Tip
+                    // What they can do from the dashboard
                     HStack(alignment: .top, spacing: 10) {
-                        Image(systemName: "lightbulb.fill")
-                            .foregroundStyle(AppTheme.gold)
-                            .font(.system(size: 13))
-                        Text("Even a rough draft works — AI extracts what it can and you can fill in the rest.")
-                            .font(.system(size: 12))
-                            .foregroundStyle(AppTheme.textMuted)
-                            .lineSpacing(2)
-                            .fixedSize(horizontal: false, vertical: true)
+                        Image(systemName: "info.circle.fill")
+                            .foregroundStyle(AppTheme.gold).font(.system(size: 13))
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("From the dashboard you can:")
+                                .font(.system(size: 12, weight: .semibold))
+                                .foregroundStyle(AppTheme.gold)
+                            VStack(alignment: .leading, spacing: 2) {
+                                tipRow("Import or scan your CV anytime")
+                                tipRow("Add a new CV for each job type")
+                                tipRow("Generate tailored applications")
+                            }
+                        }
                     }
                     .padding(12)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .background(AppTheme.goldFaint)
                     .clipShape(RoundedRectangle(cornerRadius: AppTheme.radiusMd))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: AppTheme.radiusMd)
-                            .stroke(AppTheme.goldBorder, lineWidth: 0.5)
-                    )
+                    .overlay(RoundedRectangle(cornerRadius: AppTheme.radiusMd)
+                        .stroke(AppTheme.goldBorder, lineWidth: 0.5))
                 }
-                .padding(.horizontal, 24)
-                .padding(.bottom, 40)
-                // Ensure minimum content height fills screen so title appears centred on tall phones
-                .frame(minHeight: geo.size.height)
             }
+            .padding(.horizontal, 24)
+            .padding(.bottom, 50)
         }
-        .safeAreaPadding(.top)
+    }
+
+    private func tipRow(_ text: String) -> some View {
+        HStack(spacing: 6) {
+            Circle().fill(AppTheme.gold).frame(width: 4, height: 4)
+            Text(text).font(.system(size: 11)).foregroundStyle(AppTheme.textMuted)
+        }
     }
 
     private func importCard(

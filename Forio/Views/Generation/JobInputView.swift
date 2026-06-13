@@ -14,6 +14,8 @@ struct JobInputView: View {
     @State private var showTemplates = false
     @State private var showPasteSheet = false
     @State private var showAddCV = false
+    enum AddCVScreen { case none, addCV }
+    @State private var addCVScreen: AddCVScreen = .none
     @State private var isScanning = false
     @State private var scanError: String? = nil
 
@@ -26,12 +28,34 @@ struct JobInputView: View {
 
     var body: some View {
         ZStack {
-            Color(hex: "0A0A0F").ignoresSafeArea(.all)
+            AppTheme.bgPrimary.ignoresSafeArea(.all)
+
+            // Main screens
             switch screen {
-            case .input:     inputView
+            case .input:      inputView
             case .generating: GenerationProgressView(viewModel: viewModel)
             }
+
+            // Add CV screen — slides in over the top, no sheet
+            if addCVScreen == .addCV {
+                ScanAndNameCVView(
+                    onSaved: { newProfile in
+                        viewModel.selectedCVProfile = newProfile
+                        withAnimation(.easeInOut(duration: 0.3)) {
+                            addCVScreen = .none
+                        }
+                    },
+                    onBack: {
+                        withAnimation(.easeInOut(duration: 0.3)) {
+                            addCVScreen = .none
+                        }
+                    }
+                )
+                .transition(.move(edge: .bottom).combined(with: .opacity))
+                .zIndex(10)
+            }
         }
+        .animation(.easeInOut(duration: 0.3), value: addCVScreen == .none)
         .navigationBarHidden(true)
         .toolbar(.hidden, for: .navigationBar)
         .fullScreenCover(isPresented: $showScanner) {
@@ -48,7 +72,7 @@ struct JobInputView: View {
                             if !extracted.title.isEmpty   { viewModel.jobTitle   = extracted.title }
                             if !extracted.company.isEmpty { viewModel.company    = extracted.company }
                         } catch {
-                            scanError = "Couldn't read the job ad — try paste instead."
+                            scanError = "Couldn't read the job ad clearly.\n\nTips:\n• Hold phone steady\n• Ensure good lighting\n• Zoom in on the text\n\nOr tap Paste to copy the text instead."
                         }
                         isScanning = false
                     }
@@ -64,11 +88,7 @@ struct JobInputView: View {
         .sheet(isPresented: $showPaywall) {
             PaywallView(onDismiss: { showPaywall = false })
         }
-        .sheet(isPresented: $showAddCV) {
-            ScanAndNameCVView { newProfile in
-                viewModel.selectedCVProfile = newProfile
-            }
-        }
+
         .alert("Scan failed", isPresented: Binding(
             get: { scanError != nil }, set: { if !$0 { scanError = nil } }
         )) {
@@ -87,15 +107,15 @@ struct JobInputView: View {
                     Image(systemName: "xmark")
                         .foregroundStyle(AppTheme.textMuted)
                         .frame(width: 32, height: 32)
-                        .background(Color(hex: "13131a"))
+                        .background(AppTheme.bgCard)
                         .clipShape(RoundedRectangle(cornerRadius: 8))
                         .overlay(RoundedRectangle(cornerRadius: 8)
-                            .stroke(Color(hex: "2a2a3a"), lineWidth: 0.5))
+                            .stroke(AppTheme.bgBorder, lineWidth: 0.5))
                 }
                 Spacer()
                 Text("New Application")
                     .font(.system(size: 16, weight: .medium))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(AppTheme.textPrimary)
                 Spacer()
                 if !purchaseService.isPremium {
                     Button(action: { showPaywall = true }) {
@@ -113,9 +133,9 @@ struct JobInputView: View {
                 }
             }
             .padding(.horizontal, 20)
-            .padding(.top, 16)
+            .padding(.top, 60)
             .padding(.bottom, 16)
-            .background(Color(hex: "0A0A0F"))
+            .background(AppTheme.bgPrimary)
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
@@ -124,7 +144,7 @@ struct JobInputView: View {
                     VStack(alignment: .leading, spacing: 8) {
                         Text("SELECT CV")
                             .font(.system(size: 10, weight: .medium))
-                            .foregroundStyle(Color(hex: "666666"))
+                            .foregroundStyle(AppTheme.textMuted)
                             .kerning(0.5)
 
                         ScrollView(.horizontal, showsIndicators: false) {
@@ -151,7 +171,7 @@ struct JobInputView: View {
                     VStack(alignment: .leading, spacing: 8) {
                         Text("JOB DESCRIPTION")
                             .font(.system(size: 10, weight: .medium))
-                            .foregroundStyle(Color(hex: "666666"))
+                            .foregroundStyle(AppTheme.textMuted)
                             .kerning(0.5)
 
                         // Input method cards
@@ -166,10 +186,10 @@ struct JobInputView: View {
                             HStack(spacing: 10) {
                                 ProgressView().tint(AppTheme.gold).scaleEffect(0.85)
                                 Text("Reading job description…")
-                                    .font(.system(size: 13)).foregroundStyle(Color(hex: "888888"))
+                                    .font(.system(size: 13)).foregroundStyle(AppTheme.textMuted)
                             }
                             .frame(maxWidth: .infinity).padding(14)
-                            .background(Color(hex: "13131a"))
+                            .background(AppTheme.bgCard)
                             .clipShape(RoundedRectangle(cornerRadius: AppTheme.radiusMd))
                         }
 
@@ -197,7 +217,7 @@ struct JobInputView: View {
                             Text("Generate with AI")
                                 .font(.system(size: 15, weight: .semibold))
                         }
-                        .foregroundStyle(Color(hex: "0A0A0F"))
+                        .foregroundStyle(AppTheme.bgPrimary)
                         .frame(maxWidth: .infinity).padding(.vertical, 16)
                         .background(!viewModel.canGenerate || !purchaseService.canGenerate
                                     ? AppTheme.gold.opacity(0.4) : AppTheme.gold)
@@ -210,7 +230,6 @@ struct JobInputView: View {
                 .padding(.bottom, 52)
             }
         }
-        .safeAreaPadding(.top)
     }
 
     // MARK: - CV Card
@@ -226,11 +245,11 @@ struct JobInputView: View {
                 // Initials circle
                 ZStack {
                     Circle()
-                        .fill(isSelected ? AppTheme.gold : Color(hex: "2a2a3a"))
+                        .fill(isSelected ? AppTheme.gold : AppTheme.bgBorder)
                         .frame(width: 32, height: 32)
                     Text(initials(cv.fullName))
                         .font(.system(size: 11, weight: .semibold))
-                        .foregroundStyle(isSelected ? Color(hex: "0A0A0F") : Color(hex: "888888"))
+                        .foregroundStyle(isSelected ? AppTheme.bgPrimary : AppTheme.textMuted)
                 }
 
                 Text(cv.name)
@@ -241,7 +260,7 @@ struct JobInputView: View {
 
                 Text("\(cv.experience.count) roles")
                     .font(.system(size: 9))
-                    .foregroundStyle(Color(hex: "666666"))
+                    .foregroundStyle(AppTheme.textMuted)
 
                 // Selected indicator
                 if isSelected {
@@ -255,11 +274,11 @@ struct JobInputView: View {
             }
             .padding(10)
             .frame(width: 88)
-            .background(isSelected ? AppTheme.goldFaint : Color(hex: "13131a"))
+            .background(isSelected ? AppTheme.goldFaint : AppTheme.bgCard)
             .clipShape(RoundedRectangle(cornerRadius: 12))
             .overlay(
                 RoundedRectangle(cornerRadius: 12)
-                    .stroke(isSelected ? AppTheme.goldBorder : Color(hex: "2a2a3a"),
+                    .stroke(isSelected ? AppTheme.goldBorder : AppTheme.bgBorder,
                             lineWidth: isSelected ? 1.0 : 0.5)
             )
         }
@@ -269,7 +288,7 @@ struct JobInputView: View {
     // MARK: - Add CV card
 
     private var addCVCard: some View {
-        Button(action: { showAddCV = true }) {
+        Button(action: { withAnimation(.easeInOut(duration: 0.3)) { addCVScreen = .addCV } }) {
             VStack(spacing: 6) {
                 ZStack {
                     Circle()
@@ -285,17 +304,17 @@ struct JobInputView: View {
                     .foregroundStyle(AppTheme.gold)
                 Text("Scan or upload")
                     .font(.system(size: 9))
-                    .foregroundStyle(Color(hex: "666666"))
+                    .foregroundStyle(AppTheme.textMuted)
                     .multilineTextAlignment(.center)
             }
             .padding(10)
             .frame(width: 88)
-            .background(Color(hex: "12111A"))
+            .background(AppTheme.bgCard)
             .clipShape(RoundedRectangle(cornerRadius: 12))
             .overlay(
                 RoundedRectangle(cornerRadius: 12)
                     .strokeBorder(style: StrokeStyle(lineWidth: 0.5, dash: [4]))
-                    .foregroundStyle(Color(hex: "3A3850"))
+                    .foregroundStyle(AppTheme.bgBorder)
             )
         }
         .buttonStyle(.plain)
@@ -312,13 +331,13 @@ struct JobInputView: View {
                     .foregroundStyle(AppTheme.gold)
                 Text("\(cv.fullName.isEmpty ? "CV" : cv.fullName) · \(cv.experience.count) roles · \(cv.skills.count) skills")
                     .font(.system(size: 10))
-                    .foregroundStyle(Color(hex: "888888"))
+                    .foregroundStyle(AppTheme.textMuted)
             }
             Spacer()
             Button(action: { viewModel.selectedCVProfile = nil }) {
                 Text("Clear")
                     .font(.system(size: 10))
-                    .foregroundStyle(Color(hex: "666666"))
+                    .foregroundStyle(AppTheme.textMuted)
             }
         }
         .padding(10)
@@ -330,15 +349,15 @@ struct JobInputView: View {
     private func defaultProfileBanner(_ profile: UserProfile) -> some View {
         HStack(spacing: 8) {
             Image(systemName: "person.circle.fill")
-                .foregroundStyle(Color(hex: "555555")).font(.system(size: 14))
+                .foregroundStyle(AppTheme.textDisabled).font(.system(size: 14))
             Text("Using: \(profile.fullName.isEmpty ? "My saved profile" : profile.fullName)")
-                .font(.system(size: 11)).foregroundStyle(Color(hex: "888888"))
+                .font(.system(size: 11)).foregroundStyle(AppTheme.textMuted)
             Spacer()
         }
         .padding(10)
-        .background(Color(hex: "13131a"))
+        .background(AppTheme.bgCard)
         .clipShape(RoundedRectangle(cornerRadius: 10))
-        .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color(hex: "2a2a3a"), lineWidth: 0.5))
+        .overlay(RoundedRectangle(cornerRadius: 10).stroke(AppTheme.bgBorder, lineWidth: 0.5))
     }
 
     // MARK: - Input method card
@@ -349,21 +368,21 @@ struct JobInputView: View {
             VStack(spacing: 8) {
                 ZStack {
                     Circle()
-                        .fill(isFeatured ? AppTheme.gold.opacity(0.2) : Color(hex: "1E1C2A"))
+                        .fill(isFeatured ? AppTheme.gold.opacity(0.2) : AppTheme.bgElevated)
                         .frame(width: 52, height: 52)
                     Image(systemName: icon).font(.system(size: 22))
-                        .foregroundStyle(isFeatured ? AppTheme.gold : Color(hex: "888888"))
+                        .foregroundStyle(isFeatured ? AppTheme.gold : AppTheme.textMuted)
                 }
                 Text(label).font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(isFeatured ? AppTheme.gold : .white)
-                Text(subtitle).font(.system(size: 10)).foregroundStyle(Color(hex: "666666"))
+                Text(subtitle).font(.system(size: 10)).foregroundStyle(AppTheme.textMuted)
                     .multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true)
             }
             .frame(maxWidth: .infinity).padding(.vertical, 16).padding(.horizontal, 4)
-            .background(isFeatured ? AppTheme.goldFaint : Color(hex: "13131a"))
+            .background(isFeatured ? AppTheme.goldFaint : AppTheme.bgCard)
             .clipShape(RoundedRectangle(cornerRadius: AppTheme.radiusMd))
             .overlay(RoundedRectangle(cornerRadius: AppTheme.radiusMd)
-                .stroke(isFeatured ? AppTheme.goldBorder : Color(hex: "2a2a3a"),
+                .stroke(isFeatured ? AppTheme.goldBorder : AppTheme.bgBorder,
                         lineWidth: isFeatured ? 1.0 : 0.5))
         }
         .buttonStyle(.plain)
@@ -386,13 +405,13 @@ struct JobInputView: View {
                     viewModel.jobTitle = ""
                     viewModel.company = ""
                 }
-                .font(.system(size: 12)).foregroundStyle(Color(hex: "666666"))
+                .font(.system(size: 12)).foregroundStyle(AppTheme.textMuted)
             }
             Text(viewModel.jobDescription)
-                .font(.system(size: 12)).foregroundStyle(Color(hex: "888888"))
+                .font(.system(size: 12)).foregroundStyle(AppTheme.textMuted)
                 .lineLimit(5).lineSpacing(3).frame(maxWidth: .infinity, alignment: .leading)
         }
-        .padding(14).background(Color(hex: "13131a"))
+        .padding(14).background(AppTheme.bgCard)
         .clipShape(RoundedRectangle(cornerRadius: AppTheme.radiusMd))
         .overlay(RoundedRectangle(cornerRadius: AppTheme.radiusMd)
             .stroke(AppTheme.success.opacity(0.4), lineWidth: 1))
@@ -403,16 +422,16 @@ struct JobInputView: View {
     private var emptyStateCard: some View {
         VStack(spacing: 10) {
             Image(systemName: "camera.viewfinder").font(.system(size: 34))
-                .foregroundStyle(Color(hex: "333333"))
+                .foregroundStyle(AppTheme.bgElevated)
             Text("Scan a job ad, paste text,\nor share from LinkedIn / Indeed")
-                .font(.system(size: 13)).foregroundStyle(Color(hex: "555555"))
+                .font(.system(size: 13)).foregroundStyle(AppTheme.textDisabled)
                 .multilineTextAlignment(.center).lineSpacing(3)
         }
         .frame(maxWidth: .infinity).padding(.vertical, 28)
-        .background(Color(hex: "13131a"))
+        .background(AppTheme.bgCard)
         .clipShape(RoundedRectangle(cornerRadius: AppTheme.radiusMd))
         .overlay(RoundedRectangle(cornerRadius: AppTheme.radiusMd)
-            .stroke(Color(hex: "2a2a3a"), lineWidth: 0.5))
+            .stroke(AppTheme.bgBorder, lineWidth: 0.5))
     }
 
     // MARK: - LinkedIn tip
@@ -424,7 +443,7 @@ struct JobInputView: View {
                 Text("From LinkedIn or Indeed")
                     .font(.system(size: 12, weight: .semibold)).foregroundStyle(AppTheme.gold)
                 Text("Open the job → Share → Copy text → come back and tap Paste. Or scan the screen.")
-                    .font(.system(size: 11)).foregroundStyle(Color(hex: "888888"))
+                    .font(.system(size: 11)).foregroundStyle(AppTheme.textMuted)
                     .lineSpacing(2).fixedSize(horizontal: false, vertical: true)
             }
         }
@@ -441,18 +460,18 @@ struct JobInputView: View {
                 Image(systemName: "paintbrush").font(.system(size: 14))
                     .foregroundStyle(AppTheme.gold).frame(width: 24)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Template").font(.system(size: 13, weight: .medium)).foregroundStyle(.white)
+                    Text("Template").font(.system(size: 13, weight: .medium)).foregroundStyle(AppTheme.textPrimary)
                     Text(viewModel.selectedTemplate.displayName)
-                        .font(.system(size: 11)).foregroundStyle(Color(hex: "888888"))
+                        .font(.system(size: 11)).foregroundStyle(AppTheme.textMuted)
                 }
                 Spacer()
                 Image(systemName: "chevron.right").font(.system(size: 11))
-                    .foregroundStyle(Color(hex: "555555"))
+                    .foregroundStyle(AppTheme.textDisabled)
             }
-            .padding(14).background(Color(hex: "13131a"))
+            .padding(14).background(AppTheme.bgCard)
             .clipShape(RoundedRectangle(cornerRadius: AppTheme.radiusMd))
             .overlay(RoundedRectangle(cornerRadius: AppTheme.radiusMd)
-                .stroke(Color(hex: "2a2a3a"), lineWidth: 0.5))
+                .stroke(AppTheme.bgBorder, lineWidth: 0.5))
         }
         .buttonStyle(.plain)
     }
@@ -465,13 +484,13 @@ struct JobInputView: View {
                 Text("✦").font(.system(size: 16)).foregroundStyle(AppTheme.gold)
                 VStack(alignment: .leading, spacing: 2) {
                     Text("You've used all free CVs")
-                        .font(.system(size: 13, weight: .semibold)).foregroundStyle(.white)
+                        .font(.system(size: 13, weight: .semibold)).foregroundStyle(AppTheme.textPrimary)
                     Text("Upgrade for unlimited generation")
-                        .font(.system(size: 11)).foregroundStyle(Color(hex: "888888"))
+                        .font(.system(size: 11)).foregroundStyle(AppTheme.textMuted)
                 }
                 Spacer()
                 Text("Upgrade").font(.system(size: 11, weight: .semibold))
-                    .foregroundStyle(Color(hex: "0A0A0F")).padding(.horizontal, 10).padding(.vertical, 5)
+                    .foregroundStyle(AppTheme.bgPrimary).padding(.horizontal, 10).padding(.vertical, 5)
                     .background(AppTheme.gold).clipShape(RoundedRectangle(cornerRadius: 8))
             }
             .padding(14).background(AppTheme.goldFaint)
@@ -529,53 +548,53 @@ struct JobPasteView: View {
 
     var body: some View {
         ZStack {
-            Color(hex: "0A0A0F").ignoresSafeArea(.all)
+            AppTheme.bgPrimary.ignoresSafeArea(.all)
             VStack(spacing: 0) {
                 HStack {
                     Button(action: { dismiss() }) {
-                        Image(systemName: "xmark").foregroundStyle(Color(hex: "888888"))
-                            .frame(width: 36, height: 36).background(Color(hex: "13131a"))
+                        Image(systemName: "xmark").foregroundStyle(AppTheme.textMuted)
+                            .frame(width: 36, height: 36).background(AppTheme.bgCard)
                             .clipShape(RoundedRectangle(cornerRadius: 10))
                             .overlay(RoundedRectangle(cornerRadius: 10)
-                                .stroke(Color(hex: "2a2a3a"), lineWidth: 0.5))
+                                .stroke(AppTheme.bgBorder, lineWidth: 0.5))
                     }
                     Spacer()
                     Text("Paste job description")
-                        .font(.system(size: 15, weight: .semibold)).foregroundStyle(.white)
+                        .font(.system(size: 15, weight: .semibold)).foregroundStyle(AppTheme.textPrimary)
                     Spacer()
                     Button(action: {
                         if let clip = UIPasteboard.general.string, !clip.isEmpty { text = clip }
                     }) {
                         Text("Paste").font(.system(size: 14, weight: .semibold))
-                            .foregroundStyle(Color(hex: "0A0A0F"))
+                            .foregroundStyle(AppTheme.bgPrimary)
                             .padding(.horizontal, 14).padding(.vertical, 8)
                             .background(AppTheme.gold).clipShape(RoundedRectangle(cornerRadius: 10))
                     }
                 }
                 .padding(.horizontal, 20).padding(.top, 20).padding(.bottom, 10)
-                .background(Color(hex: "0A0A0F"))
+                .background(AppTheme.bgPrimary)
 
                 HStack(alignment: .top, spacing: 8) {
                     Image(systemName: "lightbulb.fill").foregroundStyle(AppTheme.gold).font(.system(size: 11))
                     Text("LinkedIn / Indeed → open job → Share → Copy text → tap Paste above")
-                        .font(.system(size: 11)).foregroundStyle(Color(hex: "888888"))
+                        .font(.system(size: 11)).foregroundStyle(AppTheme.textMuted)
                         .lineSpacing(2).fixedSize(horizontal: false, vertical: true)
                 }
                 .padding(10).frame(maxWidth: .infinity, alignment: .leading).background(AppTheme.goldFaint)
                 .clipShape(RoundedRectangle(cornerRadius: 10))
                 .overlay(RoundedRectangle(cornerRadius: 10).stroke(AppTheme.goldBorder, lineWidth: 0.5))
-                .padding(.horizontal, 20).padding(.bottom, 10).background(Color(hex: "0A0A0F"))
+                .padding(.horizontal, 20).padding(.bottom, 10).background(AppTheme.bgPrimary)
 
                 ZStack(alignment: .topLeading) {
-                    RoundedRectangle(cornerRadius: AppTheme.radiusMd).fill(Color(hex: "13131a"))
+                    RoundedRectangle(cornerRadius: AppTheme.radiusMd).fill(AppTheme.bgCard)
                         .overlay(RoundedRectangle(cornerRadius: AppTheme.radiusMd)
-                            .stroke(focused ? AppTheme.goldBorder : Color(hex: "2a2a3a"), lineWidth: 0.5))
+                            .stroke(focused ? AppTheme.goldBorder : AppTheme.bgBorder, lineWidth: 0.5))
                     if text.isEmpty {
                         Text("Paste the full job description here…")
-                            .font(.system(size: 14)).foregroundStyle(Color(hex: "444444"))
+                            .font(.system(size: 14)).foregroundStyle(AppTheme.textDisabled)
                             .padding(14).allowsHitTesting(false)
                     }
-                    TextEditor(text: $text).font(.system(size: 13)).foregroundStyle(.white)
+                    TextEditor(text: $text).font(.system(size: 13)).foregroundStyle(AppTheme.textPrimary)
                         .scrollContentBackground(.hidden).background(Color.clear)
                         .padding(10).focused($focused)
                 }
@@ -587,14 +606,14 @@ struct JobPasteView: View {
                     dismiss(); onSubmit(t)
                 }) {
                     Text("Use this job description  ✦")
-                        .font(.system(size: 15, weight: .semibold)).foregroundStyle(Color(hex: "0A0A0F"))
+                        .font(.system(size: 15, weight: .semibold)).foregroundStyle(AppTheme.bgPrimary)
                         .frame(maxWidth: .infinity).padding(.vertical, 15)
                         .background(text.isEmpty ? AppTheme.gold.opacity(0.4) : AppTheme.gold)
                         .clipShape(RoundedRectangle(cornerRadius: AppTheme.radiusMd))
                 }
                 .disabled(text.isEmpty)
                 .padding(.horizontal, 20).padding(.top, 12).padding(.bottom, 36)
-                .background(Color(hex: "0A0A0F"))
+                .background(AppTheme.bgPrimary)
             }
         }
         .onAppear { focused = true }

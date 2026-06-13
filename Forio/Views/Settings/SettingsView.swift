@@ -5,8 +5,12 @@ struct SettingsView: View {
     @Environment(\.modelContext) private var modelContext
     var onBack: () -> Void
     @Query private var profiles: [UserProfile]
+    @Query private var cvProfiles: [CVProfile]
+
+    private var savedCVCount: Int { cvProfiles.count }
 
     @State private var purchaseService = PurchaseService.shared
+    @ObservedObject private var themeManager = ThemeManager.shared
     @State private var showProfileEdit = false
     @State private var showPaywall = false
     @State private var showResetAlert = false
@@ -37,13 +41,14 @@ struct SettingsView: View {
                     Color.clear.frame(width: 32, height: 32)
                 }
                 .padding(.horizontal, 20)
-                .padding(.top, 16)
+                .padding(.top, 60)
                 .padding(.bottom, 16)
 
                 ScrollView {
                     VStack(spacing: 20) {
                         profileSection
                         subscriptionSection
+                        themeSection
                         appSection
                         dangerSection
                         footerNote
@@ -53,12 +58,11 @@ struct SettingsView: View {
                     .padding(.bottom, 60)
                 }
             }
-            .safeAreaPadding(.top)
         }
         .navigationBarHidden(true)
         .toolbar(.hidden, for: .navigationBar)
         .sheet(isPresented: $showProfileEdit) {
-            if let profile { ProfileEditView(profile: profile) }
+            ProfileEditView()
         }
         .sheet(isPresented: $showPaywall) {
             PaywallView(onDismiss: { showPaywall = false })
@@ -111,7 +115,7 @@ struct SettingsView: View {
                 HStack(spacing: 0) {
                     statCell(value: "\(profile.experience.count)", label: "Roles")
                     Divider().background(AppTheme.bgBorder).frame(height: 30)
-                    statCell(value: "\(profile.education.count)", label: "Education")
+                    statCell(value: "\(savedCVCount)", label: "Saved CVs")
                     Divider().background(AppTheme.bgBorder).frame(height: 30)
                     statCell(value: "\(profile.skills.count)", label: "Skills")
                 }
@@ -164,7 +168,7 @@ struct SettingsView: View {
                         }
                         Spacer()
                         Text("Upgrade")
-                            .font(.system(size: 12, weight: .semibold)).foregroundStyle(Color(hex: "0A0A0F"))
+                            .font(.system(size: 12, weight: .semibold)).foregroundStyle(AppTheme.bgPrimary)
                             .padding(.horizontal, 12).padding(.vertical, 6)
                             .background(AppTheme.gold).clipShape(RoundedRectangle(cornerRadius: 8))
                     }
@@ -182,6 +186,56 @@ struct SettingsView: View {
     }
 
     // MARK: - App section
+
+    // MARK: - Theme section
+
+    private var themeSection: some View {
+        VStack(spacing: 8) {
+            sectionHeader("Appearance")
+            VStack(spacing: 0) {
+                ForEach(ThemeID.allCases, id: \.self) { theme in
+                    Button(action: {
+                        withAnimation(.easeInOut(duration: 0.3)) {
+                            themeManager.themeID = theme.rawValue
+                        }
+                    }) {
+                        HStack(spacing: 14) {
+                            // Colour preview swatch
+                            ZStack {
+                                RoundedRectangle(cornerRadius: 8)
+                                    .fill(Color(hex: theme.previewBg))
+                                    .frame(width: 36, height: 36)
+                                    .overlay(RoundedRectangle(cornerRadius: 8)
+                                        .stroke(Color.white.opacity(0.1), lineWidth: 0.5))
+                                Circle()
+                                    .fill(Color(hex: theme.previewAccent))
+                                    .frame(width: 14, height: 14)
+                            }
+                            Text(theme.displayName)
+                                .font(.system(size: 14))
+                                .foregroundStyle(AppTheme.textPrimary)
+                            Spacer()
+                            if themeManager.current == theme {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .foregroundStyle(AppTheme.gold)
+                                    .font(.system(size: 18))
+                            }
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 12)
+                        .background(themeManager.current == theme ? AppTheme.goldFaint : AppTheme.bgCard)
+                    }
+                    .buttonStyle(.plain)
+                    if theme != ThemeID.allCases.last {
+                        Divider().background(AppTheme.bgBorder).padding(.leading, 66)
+                    }
+                }
+            }
+            .clipShape(RoundedRectangle(cornerRadius: AppTheme.radiusMd))
+            .overlay(RoundedRectangle(cornerRadius: AppTheme.radiusMd)
+                .stroke(AppTheme.bgBorder, lineWidth: 0.5))
+        }
+    }
 
     private var appSection: some View {
         VStack(spacing: 8) {

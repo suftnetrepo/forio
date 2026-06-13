@@ -95,7 +95,7 @@ struct PasteTextView: View {
                     }) {
                         Text("Extract my profile  ✦")
                             .font(.system(size: 15, weight: .semibold))
-                            .foregroundStyle(Color(hex: "0A0A0F"))
+                            .foregroundStyle(AppTheme.bgPrimary)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 15)
                             .background(text.isEmpty ? AppTheme.gold.opacity(0.4) : AppTheme.gold)

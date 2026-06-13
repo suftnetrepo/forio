@@ -4,9 +4,9 @@ import VisionKit
 
 struct ScanAndNameCVView: View {
     @Environment(\.modelContext) private var modelContext
-    @Environment(\.dismiss) private var dismiss
 
     var onSaved: (CVProfile) -> Void
+    var onBack: (() -> Void)? = nil
 
     @State private var step: Step = .scan
     @State private var showScanner = false
@@ -23,20 +23,22 @@ struct ScanAndNameCVView: View {
 
     var body: some View {
         ZStack {
-            Color(hex: "0A0A0F").ignoresSafeArea(.all)
+            AppTheme.bgPrimary.ignoresSafeArea(.all)
 
             switch step {
             case .scan: scanStep
             case .name: nameStep
             }
         }
-        .fullScreenCover(isPresented: $showScanner) {
+        .sheet(isPresented: $showScanner) {
             DocumentScannerView { result in
-                showScanner = false
-                guard case .success(let scan) = result else { return }
+                guard case .success(let scan) = result else {
+                    showScanner = false
+                    return
+                }
                 let images = (0..<min(scan.pageCount, 10)).map { scan.imageOfPage(at: $0) }
-                // Wait for scanner cover to fully dismiss before extracting
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                showScanner = false
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
                     extractFromImages(images)
                 }
             }
@@ -57,53 +59,67 @@ struct ScanAndNameCVView: View {
     // MARK: - Scan step
 
     private var scanStep: some View {
-        VStack(spacing: 0) {
-            HStack {
-                Button(action: { dismiss() }) {
-                    Image(systemName: "xmark")
-                        .foregroundStyle(AppTheme.textMuted)
-                        .frame(width: 32, height: 32)
-                        .background(AppTheme.bgCard)
-                        .clipShape(RoundedRectangle(cornerRadius: 8))
-                }
-                Spacer()
-                Text("Import a CV")
-                    .font(.system(size: 16, weight: .medium))
-                    .foregroundStyle(AppTheme.textPrimary)
-                Spacer()
-                Color.clear.frame(width: 32)
-            }
-            .padding(.horizontal, 20)
-            .padding(.top, 16)
-            .padding(.bottom, 24)
-
-            if isExtracting {
-                extractingView
-            } else {
-                Spacer()
-
-                VStack(spacing: 10) {
-                    importCard(icon: "camera.fill",
-                               title: "Scan CV pages",
-                               subtitle: "Point camera at any CV",
-                               isFeatured: true) { showScanner = true }
-
-                    importCard(icon: "doc.fill",
-                               title: "Upload PDF",
-                               subtitle: "Pick from Files or iCloud",
-                               isFeatured: false) { showDocPicker = true }
-
-                    importCard(icon: "doc.on.clipboard.fill",
-                               title: "Paste CV text",
-                               subtitle: "Copy and paste text",
-                               isFeatured: false) { showPasteSheet = true }
+        ScrollView {
+            VStack(spacing: 0) {
+                // Header
+                HStack {
+                    Button(action: { onBack?() }) {
+                        Image(systemName: "xmark")
+                            .foregroundStyle(AppTheme.textMuted)
+                            .frame(width: 32, height: 32)
+                            .background(AppTheme.bgCard)
+                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                    }
+                    Spacer()
+                    Text("Import a CV")
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundStyle(AppTheme.textPrimary)
+                    Spacer()
+                    Color.clear.frame(width: 32)
                 }
                 .padding(.horizontal, 20)
+                .padding(.top, 60)
+                .padding(.bottom, 24)
 
-                Spacer()
+                if isExtracting {
+                    extractingView
+                } else {
+                    VStack(spacing: 10) {
+                        importCard(icon: "camera.fill",
+                                   title: "Scan CV pages",
+                                   subtitle: "Point camera at any CV",
+                                   isFeatured: true) { showScanner = true }
+
+                        importCard(icon: "doc.fill",
+                                   title: "Upload PDF",
+                                   subtitle: "Pick from Files or iCloud",
+                                   isFeatured: false) { showDocPicker = true }
+
+                        importCard(icon: "doc.on.clipboard.fill",
+                                   title: "Paste CV text",
+                                   subtitle: "Copy and paste text",
+                                   isFeatured: false) { showPasteSheet = true }
+                    }
+                    .padding(.horizontal, 20)
+
+                    HStack(alignment: .top, spacing: 10) {
+                        Image(systemName: "lightbulb.fill")
+                            .foregroundStyle(AppTheme.gold).font(.system(size: 12))
+                        Text("Even a rough draft works — AI extracts what it can and you can review before saving.")
+                            .font(.system(size: 12)).foregroundStyle(AppTheme.textMuted)
+                            .lineSpacing(2).fixedSize(horizontal: false, vertical: true)
+                    }
+                    .padding(12).frame(maxWidth: .infinity, alignment: .leading)
+                    .background(AppTheme.goldFaint)
+                    .clipShape(RoundedRectangle(cornerRadius: AppTheme.radiusMd))
+                    .overlay(RoundedRectangle(cornerRadius: AppTheme.radiusMd)
+                        .stroke(AppTheme.goldBorder, lineWidth: 0.5))
+                    .padding(.horizontal, 20)
+                    .padding(.top, 8)
+                }
             }
         }
-        .safeAreaPadding(.top)
+        .safeAreaInset(edge: .top, spacing: 0) { Color.clear.frame(height: 0) }
     }
 
     private var extractingView: some View {
@@ -126,7 +142,8 @@ struct ScanAndNameCVView: View {
     // MARK: - Name step
 
     private var nameStep: some View {
-        VStack(spacing: 0) {
+        ScrollView {
+            VStack(spacing: 0) {
             HStack {
                 Button(action: { step = .scan }) {
                     Image(systemName: "chevron.left")
@@ -143,10 +160,10 @@ struct ScanAndNameCVView: View {
                 Color.clear.frame(width: 32)
             }
             .padding(.horizontal, 20)
-            .padding(.top, 16)
+            .padding(.top, 60)
             .padding(.bottom, 24)
 
-            ScrollView {
+            VStack(alignment: .leading, spacing: 20) {
                 VStack(alignment: .leading, spacing: 20) {
 
                     // Success banner
@@ -245,14 +262,15 @@ struct ScanAndNameCVView: View {
                     }
                 }
                 .padding(.horizontal, 20)
-                .padding(.bottom, 120)
+                .padding(.bottom, 20)
             }
+            } // outer VStack
 
             // Save button
             Button(action: { saveCVProfile() }) {
                 Text("Save this CV →")
                     .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(Color(hex: "0A0A0F"))
+                    .foregroundStyle(AppTheme.bgPrimary)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 16)
                     .background(cvName.isEmpty ? AppTheme.gold.opacity(0.4) : AppTheme.gold)
@@ -262,8 +280,7 @@ struct ScanAndNameCVView: View {
             .padding(.horizontal, 20)
             .padding(.bottom, 48)
             .padding(.top, 12)
-        }
-        .safeAreaPadding(.top)
+        } // ScrollView
     }
 
     // MARK: - Import card
@@ -347,7 +364,6 @@ struct ScanAndNameCVView: View {
         let profile = CVProfile.from(extracted: extracted, name: cvName, persona: selectedPersona)
         modelContext.insert(profile)
         try? modelContext.save()
-        onSaved(profile)
-        dismiss()
+        onSaved(profile) // parent handles navigation back
     }
 }

@@ -15,6 +15,9 @@ struct CVImportView: View {
     @State private var errorMessage = ""
 
     var onComplete: () -> Void
+    var autoTrigger: AutoTrigger = .none
+
+    enum AutoTrigger: String { case none, scan, upload, paste }
 
     var body: some View {
         ZStack {
@@ -45,7 +48,7 @@ struct CVImportView: View {
                     showErrorAlert = true
                 }
             }
-        }
+        } .safeAreaPadding(.top)
         // Scanner as fullScreenCover — cleaner than sheet for camera
         .fullScreenCover(isPresented: $showScanner) {
             DocumentScannerView { result in
@@ -64,6 +67,17 @@ struct CVImportView: View {
                     return
                 }
                 viewModel.handlePDFText(text)
+            }
+        }
+        .onAppear {
+            switch autoTrigger {
+            case .scan:
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { showScanner = true }
+            case .upload:
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { showDocPicker = true }
+            case .paste:
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { showPasteSheet = true }
+            case .none: break
             }
         }
         .sheet(isPresented: $showPasteSheet) {
@@ -157,7 +171,6 @@ struct CVImportView: View {
                 .frame(minHeight: geo.size.height)
             }
         }
-        .safeAreaPadding(.top)
     }
 
     private func importCard(
@@ -211,6 +224,37 @@ struct CVImportView: View {
         guard let profile = profiles.first else { return }
         viewModel.applyToProfile(profile)
         try? modelContext.save()
+
+        // Auto-create a CVProfile from the imported UserProfile
+        // so it appears in the CV card selector on the job input screen
+        // Auto-name based on top skills
+        let skills = profile.skills.map { $0.lowercased() }
+        let cvName: String
+        if skills.contains(where: { $0.contains(".net") || $0.contains("c#") }) {
+            cvName = ".NET CV"
+        } else if skills.contains(where: { $0.contains("react native") || $0.contains("swift") || $0.contains("ios") }) {
+            cvName = "Mobile CV"
+        } else if skills.contains(where: { $0.contains("react") || $0.contains("vue") || $0.contains("angular") }) {
+            cvName = "React CV"
+        } else if !profile.fullName.isEmpty {
+            cvName = "\(profile.fullName.components(separatedBy: " ").first ?? "My") CV"
+        } else {
+            cvName = "My CV"
+        }
+        let cvProfile = CVProfile(name: cvName, persona: profile.persona)
+        cvProfile.fullName            = profile.fullName
+        cvProfile.email               = profile.email
+        cvProfile.phone               = profile.phone
+        cvProfile.location            = profile.location
+        cvProfile.linkedIn            = profile.linkedIn
+        cvProfile.portfolio           = profile.portfolio
+        cvProfile.professionalSummary = profile.professionalSummary
+        cvProfile.experience          = profile.experience
+        cvProfile.education           = profile.education
+        cvProfile.skills              = profile.skills
+        modelContext.insert(cvProfile)
+        try? modelContext.save()
+
         onComplete()
     }
 }

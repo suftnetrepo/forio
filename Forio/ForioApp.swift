@@ -4,6 +4,7 @@ import RevenueCat
 
 @main
 struct ForioApp: App {
+    @ObservedObject private var themeManager = ThemeManager.shared
     init() {
         PurchaseService.shared.configure()
     }

@@ -2,7 +2,6 @@ import SwiftUI
 import SwiftData
 
 struct ContentView: View {
-    @AppStorage(Constants.Keys.onboardingComplete) private var onboardingComplete = false
     @Query private var profiles: [UserProfile]
 
     var profile: UserProfile? { profiles.first }
@@ -10,22 +9,23 @@ struct ContentView: View {
     var body: some View {
         ZStack {
             AppTheme.bgPrimary.ignoresSafeArea(.all)
-
             Group {
-                if let profile, profile.onboardingComplete {
-                    HomeView()
-                } else if let profile, profile.importedFromCV, !profile.onboardingComplete {
-                    CVImportView {
+                if profile == nil {
+                    // No profile yet — show onboarding
+                    OnboardingView(onComplete: { })
+
+                } else if let profile, !profile.onboardingComplete, profile.importedFromCV {
+                    // Chose to import — show import flow then dashboard
+                    CVImportView(onComplete: {
                         profile.onboardingComplete = true
-                    }
-                } else if let profile, !profile.importedFromCV, !profile.onboardingComplete {
-                    MinimalProfileStarterView {
-                        profile.onboardingComplete = true
-                    }
+                    }, autoTrigger: AutoTriggerStore.shared.trigger)
+
+                } else if let profile, !profile.onboardingComplete {
+                    // Skipped — go straight to dashboard
+                    HomeView().onAppear { profile.onboardingComplete = true }
+
                 } else {
-                    OnboardingView {
-                        onboardingComplete = true
-                    }
+                    HomeView()
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -33,4 +33,10 @@ struct ContentView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .ignoresSafeArea()
     }
+}
+
+// Singleton to safely pass trigger across the re-render boundary
+class AutoTriggerStore {
+    static let shared = AutoTriggerStore()
+    var trigger: CVImportView.AutoTrigger = .none
 }
