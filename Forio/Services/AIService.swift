@@ -58,7 +58,7 @@ class AIService {
 
         return try await callGPT(messages: [
             ["role": "user", "content": contentParts]
-        ], maxTokens: 2000)
+        ], maxTokens: 6000)
     }
 
     // MARK: - CV Extraction from text
@@ -66,7 +66,7 @@ class AIService {
     func extractProfile(from text: String) async throws -> ExtractedProfile {
         return try await callGPT(messages: [
             ["role": "user", "content": "Here is a CV as plain text.\n\n\(extractionPrompt)\n\nCV TEXT:\n\(text)"]
-        ], maxTokens: 2000)
+        ], maxTokens: 6000)
     }
 
     // MARK: - CV Generation

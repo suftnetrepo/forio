@@ -12,8 +12,8 @@ enum Constants {
     // MARK: RevenueCat
     static let entitlementID    = "premium"
 
-    // MARK: Free tier
-    static let freeGenerations  = 10 // TODO: change back to 3 before App Store submission
+    // MARK: Free tier  ← Fixed: was 10, now 3
+    static let freeGenerations  = 3
 
     // MARK: UserDefaults keys
     enum Keys {

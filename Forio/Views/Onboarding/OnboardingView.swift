@@ -89,7 +89,7 @@ struct SplashScreen: View {
                         .shadow(color: AppTheme.gold.opacity(0.4), radius: 20, y: 8)
                     Image(systemName: "doc.text.fill")
                         .font(.system(size: 34))
-                        .foregroundStyle(AppTheme.bgPrimary)
+                        .foregroundStyle(Color(hex: "0A0A0F"))
                 }
                 .scaleEffect(appear ? 1 : 0.7)
                 .opacity(appear ? 1 : 0)
@@ -121,7 +121,7 @@ struct SplashScreen: View {
                 Button(action: onContinue) {
                     Text("Get Started")
                         .font(.system(size: 16, weight: .semibold))
-                        .foregroundStyle(AppTheme.bgPrimary)
+                        .foregroundStyle(Color(hex: "0A0A0F"))
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 16)
                         .background(AppTheme.gold)
@@ -214,7 +214,7 @@ struct OnboardingPagesView: View {
                 }) {
                     Text(page == pages.count - 1 ? "Let's go →" : "Next")
                         .font(.system(size: 16, weight: .semibold))
-                        .foregroundStyle(AppTheme.bgPrimary)
+                        .foregroundStyle(Color(hex: "0A0A0F"))
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 16)
                         .background(AppTheme.gold)
@@ -352,29 +352,20 @@ struct ImportChoiceScreen: View {
 
     var body: some View {
         ScrollView {
-            VStack(spacing: 24) {
+            VStack(spacing: 20) {
 
-                VStack(spacing: 12) {
-                                   ZStack {
-                                       Circle()
-                                           .fill(AppTheme.goldFaint)
-                                           .frame(width: 72, height: 72)
-                                           .overlay(Circle().stroke(AppTheme.goldBorder, lineWidth: 1))
-                                       Image(systemName: "person.text.rectangle.fill")
-                                           .font(.system(size: 30))
-                                           .foregroundStyle(AppTheme.gold)
-                                   }
-                                   Text("Set up your profile")
-                                       .font(.system(size: 28, weight: .bold))
-                                       .foregroundStyle(AppTheme.textPrimary)
-                                       .multilineTextAlignment(.center)
-                                   Text("Import your CV so AI can tailor\nevery application to you")
-                                       .font(.system(size: 15))
-                                       .foregroundStyle(AppTheme.textMuted)
-                                       .multilineTextAlignment(.center)
-                                       .lineSpacing(4)
-                               }
-                               .padding(.top, 70)
+                // Title
+                VStack(spacing: 8) {
+                    Text("Set up your profile")
+                        .font(.system(size: 26, weight: .semibold))
+                        .foregroundStyle(.white)
+                    Text("Import your CV so AI can tailor every application to you")
+                        .font(.system(size: 14))
+                        .foregroundStyle(Color(hex: "888888"))
+                        .multilineTextAlignment(.center)
+                        .lineSpacing(3)
+                }
+                .padding(.top, 60)
 
                 // Import options
                 VStack(spacing: 10) {
@@ -400,10 +391,10 @@ struct ImportChoiceScreen: View {
 
                 // Divider
                 HStack {
-                    Rectangle().fill(AppTheme.bgBorder).frame(height: 0.5)
-                    Text("or").font(.system(size: 12)).foregroundStyle(AppTheme.textDisabled)
+                    Rectangle().fill(Color(hex: "2a2a3a")).frame(height: 0.5)
+                    Text("or").font(.system(size: 12)).foregroundStyle(Color(hex: "444444"))
                         .padding(.horizontal, 12)
-                    Rectangle().fill(AppTheme.bgBorder).frame(height: 0.5)
+                    Rectangle().fill(Color(hex: "2a2a3a")).frame(height: 0.5)
                 }
 
                 // Skip option — friendly, not buried
@@ -412,18 +403,18 @@ struct ImportChoiceScreen: View {
                         VStack(spacing: 6) {
                             Text("Skip for now")
                                 .font(.system(size: 14, weight: .medium))
-                                .foregroundStyle(AppTheme.textPrimary)
+                                .foregroundStyle(.white)
                             Text("You can import your CV anytime from the dashboard")
                                 .font(.system(size: 12))
-                                .foregroundStyle(AppTheme.textMuted)
+                                .foregroundStyle(Color(hex: "888888"))
                                 .multilineTextAlignment(.center)
                         }
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 14)
-                        .background(AppTheme.bgCard)
+                        .background(Color(hex: "13131a"))
                         .clipShape(RoundedRectangle(cornerRadius: AppTheme.radiusMd))
                         .overlay(RoundedRectangle(cornerRadius: AppTheme.radiusMd)
-                            .stroke(AppTheme.bgBorder, lineWidth: 0.5))
+                            .stroke(Color(hex: "2a2a3a"), lineWidth: 0.5))
                     }
                     .buttonStyle(.plain)
 
@@ -458,52 +449,51 @@ struct ImportChoiceScreen: View {
     private func tipRow(_ text: String) -> some View {
         HStack(spacing: 6) {
             Circle().fill(AppTheme.gold).frame(width: 4, height: 4)
-            Text(text).font(.system(size: 11)).foregroundStyle(AppTheme.textMuted)
+            Text(text).font(.system(size: 11)).foregroundStyle(Color(hex: "888888"))
         }
     }
 
-    private func importCard(
-        icon: String,
-        title: String,
-        subtitle: String,
-        isFeatured: Bool,
-        action: @escaping () -> Void
-    ) -> some View {
-        Button(action: action) {
-            HStack(spacing: 14) {
-                ZStack {
-                    Circle()
-                        .fill(isFeatured ? AppTheme.gold.opacity(0.2) : AppTheme.bgElevated)
-                        .frame(width: 44, height: 44)
-                    Image(systemName: icon)
-                        .font(.system(size: 18))
-                        .foregroundStyle(isFeatured ? AppTheme.gold : AppTheme.textSecond)
-                }
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(title)
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(isFeatured ? AppTheme.gold : AppTheme.textPrimary)
-                        .fixedSize(horizontal: false, vertical: true)
-                    Text(subtitle)
-                        .font(.system(size: 12))
-                        .foregroundStyle(AppTheme.textMuted)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .lineLimit(nil)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundStyle(isFeatured ? AppTheme.gold : AppTheme.textMuted)
+private func importCard(
+    icon: String,
+    title: String,
+    subtitle: String,
+    isFeatured: Bool,
+    action: @escaping () -> Void
+) -> some View {
+    Button(action: action) {
+        HStack(spacing: 14) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(isFeatured ? AppTheme.goldFaint : AppTheme.bgElevated)
+                    .frame(width: 52, height: 52)
+                    .overlay(RoundedRectangle(cornerRadius: 12)
+                        .stroke(isFeatured ? AppTheme.goldBorder : AppTheme.bgBorder, lineWidth: 1))
+                Image(systemName: icon)
+                    .font(.system(size: 22))
+                    .foregroundStyle(isFeatured ? AppTheme.gold : AppTheme.textSecond)
             }
-            .padding(16)
-            .background(isFeatured ? AppTheme.goldFaint : AppTheme.bgCard)
-            .clipShape(RoundedRectangle(cornerRadius: AppTheme.radiusMd))
-            .overlay(
-                RoundedRectangle(cornerRadius: AppTheme.radiusMd)
-                    .stroke(isFeatured ? AppTheme.goldBorder : AppTheme.bgBorder,
-                            lineWidth: isFeatured ? 1.0 : 0.5)
-            )
+            VStack(alignment: .leading, spacing: 3) {
+                Text(title)
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(isFeatured ? AppTheme.gold : AppTheme.textPrimary)
+                Text(subtitle)
+                    .font(.system(size: 12))
+                    .foregroundStyle(AppTheme.textMuted)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Spacer()
+            Image(systemName: "chevron.right")
+                .font(.system(size: 12, weight: .medium))
+                .foregroundStyle(isFeatured ? AppTheme.gold : AppTheme.textDisabled)
         }
-        .buttonStyle(.plain)
+        .padding(16)
+        .background(isFeatured ? AppTheme.goldFaint : AppTheme.bgCard)
+        .clipShape(RoundedRectangle(cornerRadius: AppTheme.radiusMd))
+        .overlay(RoundedRectangle(cornerRadius: AppTheme.radiusMd)
+            .stroke(isFeatured ? AppTheme.goldBorder : AppTheme.bgBorder,
+                    lineWidth: isFeatured ? 1 : 0.5))
     }
+    .buttonStyle(.plain)
+}
+
 }

@@ -15,6 +15,9 @@ struct JobInputView: View {
     @State private var showPasteSheet = false
     @State private var showAddCV = false
     enum AddCVScreen { case none, addCV }
+    @State private var showURLImport = false
+    @State private var showCVScore = false
+    @State private var cvScoreForJob: String = ""
     @State private var addCVScreen: AddCVScreen = .none
     @State private var isScanning = false
     @State private var scanError: String? = nil
@@ -78,6 +81,27 @@ struct JobInputView: View {
                     }
                 }
             }
+        }
+        .sheet(isPresented: $showURLImport) {
+            URLImportView { extracted in
+                if !extracted.description.isEmpty { viewModel.jobDescription = extracted.description }
+                if !extracted.title.isEmpty       { viewModel.jobTitle = extracted.title }
+                if !extracted.company.isEmpty     { viewModel.company  = extracted.company }
+            }
+        }
+        .sheet(isPresented: $showCVScore) {
+            CVScoreSheet(
+                jobDescription: viewModel.jobDescription,
+                cvContent: viewModel.selectedCVProfile?.professionalSummary ?? profile?.professionalSummary ?? "",
+                onGenerate: {
+                    showCVScore = false
+                    if let cvProfile = viewModel.selectedCVProfile {
+                        Task { await viewModel.generate(cvProfile: cvProfile, purchaseService: purchaseService) }
+                    } else if let p = profile {
+                        Task { await viewModel.generate(profile: p, purchaseService: purchaseService) }
+                    }
+                }
+            )
         }
         .sheet(isPresented: $showPasteSheet) {
             JobPasteView { text in viewModel.jobDescription = text }
@@ -618,5 +642,142 @@ struct JobPasteView: View {
         }
         .onAppear { focused = true }
         .ignoresSafeArea(.keyboard, edges: .bottom)
+    }
+}
+
+// MARK: - CV Score Sheet (pre-generation match analysis)
+
+struct CVScoreSheet: View {
+    let jobDescription: String
+    let cvContent: String
+    let onGenerate: () -> Void
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var result: AIService.MatchResult?
+    @State private var isLoading = true
+    @State private var error: String?
+
+    var body: some View {
+        NavigationStack {
+            VStack(spacing: 0) {
+                if isLoading {
+                    VStack(spacing: 14) {
+                        Spacer()
+                        ProgressView().tint(AppTheme.gold).scaleEffect(1.4)
+                        Text("Analysing your CV against this role…")
+                            .font(.system(size: 14)).foregroundStyle(AppTheme.textMuted)
+                        Spacer()
+                    }
+                } else if let err = error {
+                    VStack(spacing: 12) {
+                        Spacer()
+                        Text(err).font(.system(size: 14)).foregroundStyle(AppTheme.textMuted).multilineTextAlignment(.center)
+                        Button("Skip & Generate") { dismiss(); onGenerate() }.buttonStyle(GoldButtonStyle())
+                        Spacer()
+                    }
+                    .padding(32)
+                } else if let r = result {
+                    ScrollView {
+                        VStack(spacing: 20) {
+                            // Score ring
+                            ZStack {
+                                Circle().stroke(AppTheme.bgBorder, lineWidth: 14).frame(width: 150, height: 150)
+                                Circle().trim(from: 0, to: CGFloat(r.score) / 100)
+                                    .stroke(scoreColor(r.score), style: StrokeStyle(lineWidth: 14, lineCap: .round))
+                                    .frame(width: 150, height: 150).rotationEffect(.degrees(-90))
+                                    .animation(.easeInOut(duration: 0.9), value: r.score)
+                                VStack(spacing: 2) {
+                                    Text("\(r.score)%").font(.system(size: 38, weight: .bold)).foregroundStyle(scoreColor(r.score))
+                                    Text("CV Match").font(.system(size: 12)).foregroundStyle(AppTheme.textMuted)
+                                }
+                            }
+                            .padding(.top, 8)
+
+                            // Interpretation
+                            Text(interpretation(r.score))
+                                .font(.system(size: 14)).foregroundStyle(AppTheme.textMuted)
+                                .multilineTextAlignment(.center)
+                                .padding(.horizontal, 24)
+
+                            // Insights
+                            if !r.insights.isEmpty {
+                                VStack(alignment: .leading, spacing: 8) {
+                                    Text("How to improve your match")
+                                        .font(.system(size: 13, weight: .semibold))
+                                        .foregroundStyle(AppTheme.textPrimary)
+                                    ForEach(r.insights, id: \.self) { insight in
+                                        HStack(alignment: .top, spacing: 8) {
+                                            Image(systemName: "lightbulb.fill").foregroundStyle(AppTheme.gold).font(.system(size: 12)).padding(.top, 1)
+                                            Text(insight).font(.system(size: 12)).foregroundStyle(AppTheme.textSecond).lineSpacing(3)
+                                        }
+                                        .padding(10)
+                                        .background(AppTheme.goldFaint)
+                                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                                        .overlay(RoundedRectangle(cornerRadius: 8).stroke(AppTheme.goldBorder, lineWidth: 0.5))
+                                    }
+                                }
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding(.horizontal, 4)
+                            }
+
+                            Spacer(minLength: 40)
+                        }
+                        .padding(20)
+                    }
+
+                    // Generate button
+                    VStack(spacing: 10) {
+                        Button(action: { dismiss(); onGenerate() }) {
+                            HStack(spacing: 8) {
+                                Image(systemName: "sparkles")
+                                Text("Generate Optimised CV")
+                            }
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundStyle(AppTheme.bgPrimary)
+                            .frame(maxWidth: .infinity).padding(.vertical, 15)
+                            .background(AppTheme.gold)
+                            .clipShape(RoundedRectangle(cornerRadius: AppTheme.radiusMd))
+                        }
+                        .buttonStyle(.plain)
+
+                        Text("AI will boost your score by tailoring the CV to this role")
+                            .font(.system(size: 11)).foregroundStyle(AppTheme.textDisabled)
+                    }
+                    .padding(.horizontal, 20).padding(.top, 8).padding(.bottom, 34)
+                    .background(.ultraThinMaterial)
+                    .overlay(alignment: .top) { Rectangle().fill(AppTheme.bgBorder).frame(height: 0.5) }
+                }
+            }
+            .background(AppTheme.bgPrimary)
+            .navigationTitle("Match Score")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Cancel") { dismiss() }.foregroundStyle(AppTheme.textMuted)
+                }
+            }
+        }
+        .task {
+            guard !jobDescription.isEmpty && !cvContent.isEmpty else {
+                error = "Add your CV and job description first"; isLoading = false; return
+            }
+            do {
+                let r = try await AIService.shared.calculateMatchScore(cvContent: cvContent, jobDescription: jobDescription)
+                withAnimation { self.result = r; self.isLoading = false }
+            } catch {
+                self.error = "Couldn't analyse score. You can still generate."
+                self.isLoading = false
+            }
+        }
+    }
+
+    private func scoreColor(_ s: Int) -> Color { s >= 70 ? AppTheme.success : s >= 50 ? AppTheme.gold : AppTheme.danger }
+    private func interpretation(_ s: Int) -> String {
+        switch s {
+        case 0..<40: return "Your CV is a \(s)% match. Generating will boost it significantly for this role."
+        case 40..<65: return "Your CV is a \(s)% match. AI will tailor it to improve the fit."
+        case 65..<80: return "Good match at \(s)%. Generating will fine-tune it further."
+        default:      return "Excellent \(s)% match! Generating will optimise the final details."
+        }
     }
 }

@@ -12,7 +12,13 @@ struct ForioApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
-                .modelContainer(for: [UserProfile.self, JobApplication.self, GeneratedDocument.self, CVProfile.self])
+                .modelContainer(for: [
+                    UserProfile.self,
+                    JobApplication.self,
+                    GeneratedDocument.self,
+                    CVProfile.self,
+                    InterviewSession.self
+                ])
                 .preferredColorScheme(.dark)
         }
     }
